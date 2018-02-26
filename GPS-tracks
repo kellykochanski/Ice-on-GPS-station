@@ -1,0 +1,667 @@
+function [azzd] = HW01_2014(navfile, lat, long, ht)
+% HW01_2014: Solution to 12.540 HW01 2014.  Arguments are quextion number
+% (1,2,3 or 0 to solve all questions) and ppr set to non-zero value to save
+% the figures are postsript files.
+% Optionally a third argument can be given with navfile name (defaults
+% brdc0760.12n
+% e.g.
+% HW01_2014(0, 1, 'brdc0760.12n')
+% would run all questions, print the plots to ps files and use broadcast
+% ephemeris file brdc0760.12n.
+
+% Latitude and Longitude for AZZD are set in Q3
+% Lat and long are in radians
+% Ht (elevation) in metres
+
+% 12.540 Homework #1
+% Use close all to clear all exisitng figures
+%
+if nargin < 1
+    navfile = 'brdc0760.12n';
+end
+if nargin < 4
+    %% Set Position of site
+    %lat = 42.358*pi/180; long=288.902*pi/180; ht=0.0;
+    lat = 62.92931*pi/180;	long = -156.02339*pi/180; ht = 961; % anchorage airport
+end
+	
+
+% if nargin < 1 
+    % ppr = 0; % By default, don't print figure
+% end
+% if nargin == 0
+    % numques = 0 ; % By default, anwer all questions
+% end
+
+ppr = 0;
+numques = 0;
+
+%% Start Question 3: Satellite trajectories.
+
+if numques == 0 || numques == 3
+   
+
+    %% Read in the MIT broadcast emphersis file.
+    % nav is the broadcast ephemeris structure, lp is difference between
+    % GPSTime and UTC, nr is number of records
+    fprintf('++++++++++++++++++++++++++++++++++\n')
+    navfile = 'brdc0760.12n';
+    [nav lp nr] = ReadNav(navfile);
+    fprintf('12.540 HW 01\nFound %d records in %s, GPST-UTC %d s\n', ...
+        nr, navfile, lp);
+
+    % Set up times for calculations: Run 24-hours at 1 minute intervals. 
+    ts = (0:60:86400); num_ts = length(ts);
+    tdata = 14*3600; % Time after start of nav file our time is (14:00 GPST).  
+    % We will mark the satellite positions at this time.
+    its = find( ts == tdata ); 
+
+    % % Color for plots (need to extend if more then 10)
+     dispn = [04 05 07 08 10 15 21 26 29];
+     c = ['k:'; 'g '; 'b '; 'm '; 'r '; 'r:'; 'g:'; 'b:'; 'm:'; 'k '];
+
+    % %% Generate a sphere the size of the Earth
+    % [Xeu, Yeu, Zeu] = sphere(20);
+    % Xe = Xeu*6371.0; Ye = Yeu*6371.0; Ze = Zeu*6371; % Mean radius (2*a+b)/3
+
+    %% Q3.1(a): Generate Inertial coordinates
+    [prns IXYZ] = eph_to_xyz(nav,ts,'I');
+    % Now plot
+    % h2 = figure; set(h2,'Name','Inertial coordinates'); clf; 
+    % surface(Xe,Ye,Ze,abs(Ze)); shading interp;
+    % hold on; 
+    % for k = 1:nr;
+        % ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
+        % plot3(IXYZ(1,:,k)/1000,IXYZ(2,:,k)/1000,IXYZ(3,:,k)/1000,c(ind,:)); 
+    % end
+    % xlabel('X inertial (km)'); ylabel('Y inertial (km)'); zlabel('Z inertial (km)'); 
+    % title('Skyplot for site AB11')
+    % % Plot postions at tdata
+    % for k = 1:nr
+        % ind = find(prns(k) == dispn ); 
+        % if ~isempty(ind) 
+            % plot3(IXYZ(1,its,k)/1000,IXYZ(2,its,k)/1000,IXYZ(3,its,k)/1000,'k*')
+            % lab = sprintf('PRN%2.2d',prns(k));
+            % text(IXYZ(1,its,k)/1000,IXYZ(2,its,k)/1000,IXYZ(3,its,k)/1000,lab);
+            % fprintf('InertXYZ PRN %2.2d T %10.1f sec, XYZ %15.3f %15.3f %15.3f m\n', ...
+                % prns(k),tdata, IXYZ(1,its,k),IXYZ(2,its,k),IXYZ(3,its,k));
+        % end
+    % end
+    % daspect([1 1 1]); axis tight; grid on;
+    % view(-115,20);
+    % if ppr , print -dpsc2 HW01_Q31a.ps; end
+    % hold off;
+
+    %% Q3.1(b): Generate Earth fixed coordinates
+    [prns EXYZ] = eph_to_xyz(nav,ts,'E');
+    % % Now plot
+    % h3 = figure; set(h3,'Name','Earth Fixed coordinates'); clf; 
+    % surface(Xe,Ye,Ze,abs(Ze)); shading interp;
+    % hold on; 
+    % for k = 1:nr; 
+        % ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
+        % plot3(EXYZ(1,:,k)/1000,EXYZ(2,:,k)/1000,EXYZ(3,:,k)/1000,c(ind,:)); 
+    % end
+    % xlabel('X Efixed (km)'); ylabel('Y Efixed (km)'); zlabel('Z Efixed (km)'); 
+    % title('12.540 HW01: Q3.1(b)')
+    % pause()
+    % % Plot postions at tdata
+    % for k = 1:nr
+        % ind = find(prns(k) == dispn ); 
+        % if ~isempty(ind) 
+            % plot3(EXYZ(1,its,k)/1000,EXYZ(2,its,k)/1000,EXYZ(3,its,k)/1000,'k*')
+            % lab = sprintf('PRN%2.2d',prns(k));
+            % text(EXYZ(1,its,k)/1000,EXYZ(2,its,k)/1000,EXYZ(3,its,k)/1000,lab);
+            % fprintf('EFixsXYZ PRN %2.2d T %10.1f sec, XYZ %15.3f %15.3f %15.3f m\n', ...
+                % prns(k),tdata, EXYZ(1,its,k),EXYZ(2,its,k),EXYZ(3,its,k));
+
+        % end
+    % end
+    % daspect([1 1 1]); axis tight; grid on;
+    % view(16,30);
+    % if ppr , print -dpsc2 HW01_Q31b.ps; end
+    % hold off;
+
+    %% Q3.2 Ground track
+    % gtrk = xyz_to_llr(EXYZ); % Lat, Long (rads), dist
+    % coasts = load('WorldVelV.xy');
+    % h4 = figure; set(h4,'Name','Ground Track');
+    % plot(coasts(:,1),coasts(:,2),'k'); 
+    % hold on
+    % xlim([0 360]); ylim([-90 90]); daspect([1 1 1]);
+    % % For plotting with a line, put an NaN when the longitude wraps through
+    % % 360
+    % for k = 1:nr
+        % ind = find(gtrk(2,2:num_ts,k)-gtrk(2,1:num_ts-1,k) < 0);
+        % gtrk(2,ind+1,k) = NaN;
+    % end
+    % % Plot ground track
+
+%     for k = 1:nr
+%         ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end    
+%         plot(gtrk(2,:,k)*180/pi,gtrk(1,:,k)*180/pi,c(ind,:));
+%     end
+%     % Plot positions during data acquition
+%     for k = 1:nr
+%         ind = find(prns(k) == dispn ); 
+%         if ~isempty(ind) 
+%             plot(gtrk(2,its,k)*180/pi,gtrk(1,its,k)*180/pi,'r*');
+%             lab = sprintf('PRN%2.2d',prns(k));
+%             text(gtrk(2,its,k)*180/pi,gtrk(1,its,k)*180/pi,lab);
+%         end
+%     end
+%     xlabel('Longitude (deg)'); ylabel('Latitude (deg)');
+%     title('12.540 HW01: Q3.2')
+%     if ppr , print -dpsc2 HW01_Q32.ps; end
+%     hold off;
+
+    %% Q3.3 Azimuth/Zenith Distance plot
+    azzd = xyz_to_azzd(EXYZ,lat,long,ht);
+    % Now set all zenith distances greater than pi/2 to NaN so they will not
+    % plot
+    ind = find(azzd(2,:,:)>pi/2);
+    azzd(2,ind) = NaN;
+    % Now generate the polar plot
+    h5 = figure; set(h5,'Name','Azimuth/Zenith Distance');clf; 
+    for k = 1:nr
+        ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
+        polar(azzd(1,:,k),azzd(2,:,k)*180/pi,c(ind,:));
+        if k == 1 , hold on; end
+    end
+    % Now plot our data locations
+    for k = 1:nr
+        ind = find(prns(k) == dispn ); 
+        if ~isempty(ind) 
+            polar(azzd(1,its,k),azzd(2,its,k)*180/pi,'r*')
+            lab = sprintf('PRN%2.2d',prns(k));
+            % Compute coordinates where label needs to go
+            xl = azzd(2,its,k)*180/pi*cos(azzd(1,its,k))+5;
+            yl = azzd(2,its,k)*180/pi*sin(azzd(1,its,k));
+            text(xl,yl,lab);
+        end
+    end
+    axis tight;
+    title('12.540 HW01: Q3.3');
+    view(+90,-90)
+    if ppr , print -dpsc2 HW01_Q33.ps; end
+    hold off;
+end
+
+function [geod, niter]  = xyz_to_geod(xyz)
+% XYZ_to_GEOD: Converts XYZ to GEOD coordinates for WGS84 ellipsoid
+% XYZ(3,:) is array stucture needed; 
+% geod returns as geod(3,:) -- Lat/Long/Ht (rad, rad, m)
+%
+tol = 1.e-4 ; % Set tolerance for convergence
+earth_rad  = 6378137.0;       % Semi-major axis
+earth_flat = 1/298.257222101; % Flattening
+eccsq = 2*earth_flat - earth_flat^2; 
+%
+% Get approximate start values
+equ_rad = (xyz(1,:).^2 + xyz(2,:).^2).^(1/2);
+lat_p = atan(xyz(3,:)./equ_rad);
+long = atan2(xyz(2,:),xyz(1,:));
+converged = 0;
+niter = 0;
+h_i = zeros(1,length(lat_p));
+h_p = zeros(1,length(lat_p));
+while converged == 0
+    rad_curve = earth_rad ./ (1-eccsq.*sin(lat_p).^2).^(1/2);
+    rad_lat = equ_rad.*(1-eccsq.*rad_curve./(rad_curve+h_p));
+    lat_i = atan2(xyz(3,:), rad_lat);
+    converged = 1;
+    % To avoid rounding error use better conditoned formulas depending on
+    % the latitude of the site.
+    for k = 1:length(lat_i)
+        if abs(lat_i(k)) < pi/4
+            h_i(k) = equ_rad(k)./cos(lat_i(k)) - rad_curve(k) ; % Cos lat formuls
+        else
+            h_i(k) = xyz(3,k)/sin(lat_i(k)) - (1.d0-eccsq)*rad_curve(k); % Sin Lat formula
+        end
+        if abs(h_i(k)-h_p(k)) > tol
+            converged = 0;
+        end
+    end
+    niter = niter + 1;
+    if niter > 50 ; converged = 1; end
+    lat_p = lat_i;
+    h_p = h_i;
+end
+% Save the results
+geod = [lat_i ; long ; h_i ];
+
+
+%{ 
+Original Fotran code
+     .    tolerance  / 0.0001d0 /
+***** Start, get the latitudes and height by iteration.
+      equ_rad = sqrt( site_pos(1)**2 + site_pos(2)**2 )
+      eccsq   = 2.d0*earth_flat - earth_flat**2
+*                                            ! Set previous iteration values
+      lat_p = atan2( site_pos(3), equ_rad)
+      h_p   = 0.d0
+      converged = .false.
+      niter = 0
+      do while ( .not. converged )
+*         Get radius of curvature using previous latitudes estimate
+          rad_curve = earth_rad /
+     .               sqrt(1.d0 - eccsq*sin(lat_p)**2 )
+          rad_lat  = equ_rad *
+     .               ( 1.d0 - eccsq*rad_curve/(rad_curve+h_p) )
+
+          lat_i = atan2( site_pos(3), rad_lat)
+*                                          ! Use cos lat formula
+          if( abs(lat_i).lt. pi/4 ) then
+               h_i   = equ_rad/cos(lat_i) - rad_curve
+*                                           ! Use sin lat formula
+           else
+               h_i   = site_pos(3)/sin(lat_i) - (1.d0-eccsq)*rad_curve
+           end if
+*         Check for convergence
+          if( abs(h_i-h_p)              .lt. tolerance .and.
+*                                                             ! Converged
+     .        abs(lat_i-lat_p)*rad_curve.lt. tolerance ) then
+
+              converged = .true.
+          end if
+*         Check for two many iterations
+          niter = niter + 1
+          if( niter.gt.50 ) then
+c           get calling program name and m-file name for report_stat
+            len = rcpar(0,prog_name)
+            call report_stat('FATAL',prog_name,'lib/xyz_to_geod',' '
+     .       ,'Convergence failure in computing geodetic coordinates',0)
+          end if
+
+*         Save the latest values
+          h_p   = h_i
+          lat_p = lat_i
+*                     ! iterating for latitudes and height
+      end do
+%}
+
+function gtrk = xyz_to_llr(xyz)
+% gtrck = eph_to_llr(nav)
+% Function to compute lat, long, and radius to satellites in xyz array
+% generate by eph_to_xyz (E frame needs to be used for true earthfixed
+% ground track).
+% Just spherical lat used here.
+%
+
+% Create the gtrk array based on number of satellites, length of timeseries
+num_sv = length(xyz(1,1,:)); num_ts = length(xyz(1,:,1));
+gtrk = zeros(3,num_ts,num_sv); 
+
+% Loop over time and satellites
+for it = 1:num_ts
+    for js = 1:num_sv
+        gtrk(3,it,js) = sqrt(sum(xyz(:,it,js).^2));
+        gtrk(2,it,js) = atan2(xyz(2,it,js),xyz(1,it,js));
+        if gtrk(2,it,js)<0 
+            gtrk(2,it,js)=gtrk(2,it,js)+2*pi;
+        end
+        gtrk(1,it,js) = asin(xyz(3,it,js)/gtrk(3,it,js));
+    end
+end
+
+function [xyz,rot] = geod_to_xyz(lat, long, ht)
+% xyz = geod_to_xyz(lat, long, ht)
+% Returns XYZ coodinates associated with lat, long (rads) and height (m)
+%
+eflat =  1/298.257222101 ; % Flattening (WGS84)
+esemi = 6378137.0 ; % Semimajor axis (m)
+%
+eccsq = 2*eflat - eflat^2; % Eccentricity squared
+radc = esemi./(1 - eccsq*cos(pi/2-lat).^2).^(1/2); % Radius of curvature
+% Generate XYZ coordinates
+xyz = [(radc+ht).*sin(pi/2-lat).*cos(long) ; ...
+    (radc+ht).*sin(pi/2-lat).*sin(long); ...
+    ((1-eccsq).*radc+ht).*cos(pi/2-lat)];
+if nargout > 1 
+    
+    % This form of the matrix is to rotate to geodetic lat long
+    % Now form the rotation matrix that will rotate dXYZ to dNEU
+    dNdlat = esemi*eccsq*sin(lat)*cos(lat)/sqrt( (1-eccsq*sin(lat)^2)^3);
+
+    % Now do North derivatives
+    dXdlat = (dNdlat*cos(lat)-(radc+ht)*sin(lat))*cos(long);
+    dYdlat = (dNdlat*cos(lat)-(radc+ht)*sin(lat))*sin(long);
+    dZdlat = (1-eccsq)*dNdlat*sin(lat) + ((1-eccsq)*radc+ht)*cos(lat);
+%
+    dlatdN = sqrt(dXdlat^2+dYdlat^2+dZdlat^2);
+    % Now form the rotation matrix
+    % [-sin(lat)*cos(long) -sin(lat)*sin(long) cos(lat)]
+    rot = [dXdlat/dlatdN dYdlat/dlatdN dZdlat/dlatdN ; ...
+      -sin(long) cos(long) 0.0 ; ...
+       cos(lat)*cos(long) cos(lat)*sin(long) sin(lat)];
+end
+
+% *     Compute derivative of the radius of curvature with to latitudes
+% * MOD TAH 980216:  Fixed error in dNdLat (derivative in error by factor
+% *     of two).  Long standing bug pointed out by Dan Leibach at CfA. 
+%       dNdlat = earth_rad*eccsq *sin(lat_i)*cos(lat_i) /
+%      .         sqrt( (1.d0-eccsq* sin(lat_i)**2)**3 )
+%  
+% *     Now do NORTH component  (First do derivate wrt latitudes, then compute
+% *     the Northing derivative)
+%  
+%       dXdlat  = (dNdlat * cos(lat_i) -
+%      .                (rad_curve+h_i)* sin(lat_i) )*cos(long)
+%       dYdlat  = (dNdlat * cos(lat_i) -
+%      .                (rad_curve+h_i)* sin(lat_i) )*sin(long)
+%       dZdlat  = (1.d0-eccsq)*dNdlat         *sin(lat_i) +
+%      .             ((1.d0-eccsq)*rad_curve + h_i)*cos(lat_i)
+%  
+%       dlatdN  = sqrt(dXdlat**2 + dYdlat**2 + dZdlat**2 )
+%  
+% *     Now do rotation matrix
+%  
+%       rot_mat(1,1) = dXdlat / dlatdN
+%       rot_mat(1,2) = dYdlat / dlatdN
+%       rot_mat(1,3) = dZdlat / dlatdN
+%  
+%  
+% *     Now do EAST component
+%       rot_mat(2,1) = -sin(long)
+%       rot_mat(2,2) =  cos(long)
+%       rot_mat(2,3) =  0.d0
+%  
+% *     Now do UP component
+%  
+%       rot_mat(3,1) = cos(lat_i) * cos(long)
+%       rot_mat(3,2) = cos(lat_i) * sin(long)
+%       rot_mat(3,3) = sin(lat_i)
+%  
+
+
+        
+
+
+function [prns XYZ] = eph_to_xyz(nav,ts,frame,inprn)
+% [prns XYZ] = eph_to_xyz(nav,ts,frame) 
+% returns the prn numbers and the XYZ coordinates of the satellites in the
+% nav broadcast ephemeris structure over the times specified in the times
+% array ts.  Frame sets whether Earth fixed (E) or inertial (I) coordinates
+% are returned.
+% MOD TAH 090522: Modified to allow variable numbers of input argument
+%   inprn -- Specific PRN to be returned from last entry before the
+%   measurement time ts
+%   Also changed to just return PRNs for last entry before the measurement
+%   time
+% Define constants
+GM = 3.986005e14 ; % m^3/s^2
+eom = 7.2921151467e-5 ; % Rotation rate of Earth (rads/sec)
+if nargin < 4 
+    inprn = 0 ; % Use all PRN's at this time
+end
+
+% Set the size of the arrays to be returned
+num_ent = length(nav); num_ts = length(ts);
+XYZ = zeros(3,num_ts,num_ent); prns = zeros(num_ent,1); prntime=zeros(num_ent,1);
+
+% Loop over times
+for it = 1:num_ts
+    T = ts(it); % Time is seconds from start of day that nav is for.
+    for js = 1:num_ent % Note: This will return 
+        prns(js) = nav(js).prn;
+        a = nav(js).art^2;
+        n0 = sqrt(GM/a^3);
+        % compute time from nav file time (assumed to be same day as T).
+        tk = T - (nav(js).date(4)*3600+nav(js).date(5)*60+nav(js).date(6));
+        n = n0 + nav(js).dn;
+%         if  it == 1 
+%             fprintf('PRN %d n %15.10f n0  %15.10f  dn %15.10e Dom %15.10e \n', js, n, n0, nav(js).dn, nav(js).omd)
+%             fprintf('PRN %d a %15.4f  inc %15.10f ecc %15.10e \n',js, a, nav(js).i0, nav(js).ecc)
+%         end
+        mk = nav(js).M0 + n*tk;
+        % Solve Keplers equation
+        ek = mk; 
+        for k = 1:10
+            ek = mk + nav(js).ecc*sin(ek);
+        end
+        % Compute true anomaly
+        sinvk = sqrt(1-nav(js).ecc^2)*sin(ek)/(1-nav(js).ecc*cos(ek));
+        cosvk = (cos(ek)-nav(js).ecc)/(1-nav(js).ecc*cos(ek));
+        vk = atan2(sinvk,cosvk);
+        % Argument of latitude
+        pk = vk + nav(js).w;
+        % Correction terms
+        duk = nav(js).cus*sin(2*pk) + nav(js).cuc*cos(2*pk);
+        drk = nav(js).crs*sin(2*pk) + nav(js).crc*cos(2*pk);
+        dik = nav(js).cis*sin(2*pk) + nav(js).cic*cos(2*pk);
+        
+        uk = pk + duk;
+        rk = a*(1-nav(js).ecc*cos(ek)) + drk;
+        ik = nav(js).i0 + dik + nav(js).idt*tk;
+        
+        % Compute the in-plane coordinates
+        xpk = rk*cos(uk); 
+        ypk = rk*sin(uk);
+        
+        % Compute the longitude of the ascending node
+        omk = nav(js).om0 + nav(js).omd*tk;
+        % If we want earth fixed then apply Earth rotation.
+        if frame == 'E' || frame == 'e' 
+            omk = omk - eom*(tk+nav(js).toe);
+        end
+        %
+        % Now generate the 3-D coordinates
+        svxyz = [ xpk*cos(omk) - ypk*sin(omk)*cos(ik) ; ...
+            xpk*sin(omk) + ypk*cos(omk)*cos(ik) ; ...
+            ypk*sin(ik) ];
+        XYZ(:,it,js) = svxyz;
+     
+    end
+end
+        
+function azzd = xyz_to_azzd(xyz, lat, long, ht)
+% azzd = xyz_to_azzd(xyz, lat, long)
+% Generate azimuth, zd values for the XYZ Efixed satellite coordinates for
+% a site at lat and long (values in radians) and height ht (m).  
+% Return in radians: Azimuth and zenith distance (>pi/2 below horizon).
+
+num_sv = length(xyz(1,1,:)); num_ts = length(xyz(1,:,1));
+azzd = zeros(2,num_ts,num_sv); 
+
+% Convert the lat, long and ht to XYZ (use geodetic coordinates)
+[XYZe, rote]  = geod_to_xyz(lat,long,ht);
+
+% Loop over time and satellites
+for it = 1:num_ts
+    for js = 1:num_sv
+        % Get range from ground to satellite
+        range = sqrt(sum((xyz(:,it,js)-XYZe).^2));
+        % Generate unit vector in direction of SV
+        unit_xyz = (xyz(:,it,js)-XYZe)/range;
+        % Generate unit vector to satellite in NEU coordinates
+        unit_loc = rote*unit_xyz;
+        hlen = sqrt(sum((unit_loc(1:2)).^2));
+        azzd(1,it,js) = atan2(unit_loc(2),unit_loc(1));
+        azzd(2,it,js) = atan2(hlen,unit_loc(3));
+        
+    end
+end
+
+
+% *             Now convert the vector position of satellite into
+% *             topocentric frame so that we can AZ and El.
+%               rang = 0
+%               do j = 1,3
+%                  rang = rang + (svs_xyz(j,i)-site_xyz(j))**2
+%               end do
+%               rang = sqrt(rang)
+%               do j = 1,3
+%                  unit_xyz(j) = (svs_xyz(j,i)-site_xyz(j))/rang
+%               end do
+% 
+% *             now transform global XYZ into local NEU (loc_rot is
+% *             computed when the site coords are given in runstring.)
+%               do j = 1,3
+%                   call dvdot(unit_loc(j), loc_rot(j,1),3, unit_xyz,1,3)
+%               end do
+% 
+% *             Compute the horizontal length of the unit vector
+%               hlen = sqrt(unit_loc(1)**2+unit_loc(2)**2)
+%               svs_ang(1,i) = atan2(hlen, unit_loc(3))
+%               svs_ang(2,i) = atan2(unit_loc(2),unit_loc(1))
+%               svs_ang(3,i) = rang
+% 
+% *             Convert to plotable quanity.  North Up on the page.  This
+% *             way we can just plot the x y coordinates (i.e., mapping
+% *             to polar plot is done manually.)
+%               svs_plt(1,i) = min(svs_ang(1,i),pi/2)*sin(svs_ang(2,i))
+%               svs_plt(2,i) = min(svs_ang(1,i),pi/2)*cos(svs_ang(2,i))
+%               svs_plt(3,i) = svs_ang(3,i)
+%           end do
+    
+function [nav leapsec cnt] = ReadNav(navfile)
+% [nav leapsec cnt] = ReadNav(navfile) reads a rinex broadcast ephemeris file
+% and return results in structure nav, number of leap seconds in leapsec
+% and the number of entries in cnt
+%
+% The returned nav structure has the following elements
+% .prn     - prn is the PRN number of satellite
+% .date    - yyyy mm dd hh mm sec is the epoch to which the clock parameters
+%                       follow apply
+% .afc     - af0, af1, af2 are the clock offset (sec), rate (sec/sec) and
+%                       acceleration (sec/sec^2).
+% .adoe    - adoe       age of ephemeris entry (sec) i.e, how long ago was 
+%                       it uploaded
+% .crs
+% .crc     - crs,crc    radius corrections sin and cos  (m)
+% .dn      - dn         correction to mean motion (radian/sec)
+% .M0      - M0         Mean anomaly (radians)
+% .cuc
+% .cus     - cuc,cus    correction to argument in latitude sin and cos(rad)
+% .ecc     - ecc        eccentricity
+% .art     - art        square root of semi-major axis (m^.5)
+% .toe     - toe        time of ephemeris (same as date+sec)
+% .cic
+% .cis     - cic,cis    corrections to inclination sin and cos (rad)
+% .om0     - om0        longitude of the ascending node (rad) (Capital omega)
+% .i0      - i0         inclination (rad)
+% .w       - w          argument of perigee (rad) (lower case omega)
+% .omd     - omd        time derivative of longitude of the ascending node (rad/sec)
+% .idt     - idt        time derivative of inclination (rad/sec)
+% .cflg12
+% .pflg12  - cflg12, pflg12 Flags (whose meaning is not clear)
+% .weekno  - weekno     GPS Week Number
+% .svacc   - svaccuracy range accuracy (m)
+% .svheath - svhealth   satellite health flag
+% .tgd     - tgd        Group delay L2 bias (word 7 subframe 1)
+% .aodc    - aodc       age of clock parameter upload (sec)
+% .transmit- transmit   Transmission time seconds of GPS week
+
+
+nav = []; leapsec = 0;
+
+% Try to open the navfile
+fid = fopen(navfile);
+if fid < 1 
+    fprintf('Unable to open %s, nav structure returned empty\n',navfile);
+    return
+end
+
+% Make sure this is a nav file
+line = fgetl(fid);
+ind = findstr(line,'RINEX VERSION');
+if ind > 0 
+    rxver = sscanf(line,'%f',1);
+    fprintf('Rinex version %f found in %s\n',rxver, navfile);
+else
+    fprintf('%s in valid rinex file\nFirst line is:\n%s\n',navfile,line);
+    return
+end
+
+% Now skip rest of header
+stillhead = 1;
+while stillhead
+    line = fgetl(fid);
+    ind = findstr(line,'LEAP SECONDS');
+    if ind > 0
+        leapsec = sscanf(line,'%d',1);
+    end
+    ind = findstr(line,'END OF HEADER');
+    if ind > 0 , stillhead = 0; end
+end
+
+% Now we are ready to read the file
+cnt = 0;  % cnt will count number of entries
+OK = 1 ;  % Set OK true; when EOF reach set to false.
+while OK
+    line = getnavl(fid); % Reads and fixes line.
+    if ~ischar(line) 
+        OK = 0;  % Return was empty and so EOF reached
+    else
+        vals = sscanf(line,'%f');
+        % Save values;
+        % prn yy mm dd hh mm sec     af0          af1          af2
+        prn = vals(1);
+        date = vals(2:7); % Year mon day hr min sec
+        if date(1) < 50 
+            date(1) = 2000+date(1);
+        else
+            date(1) = 1900+date(1);
+        end
+        afc = vals(8:10);
+        % OK we are done with prn and date line, read the next block of lines
+        line = getnavl(fid);
+        vals = sscanf(line,'%f');
+        % aode               crs         dn           M0
+        aode = vals(1); crs = vals(2); dn = vals(3); M0 = vals(4);
+        % Next line
+        line = getnavl(fid);
+        vals = sscanf(line,'%f');
+        % cuc                ecc         cus          art
+        cuc = vals(1); ecc = vals(2); cus = vals(3); art = vals(4);
+
+        line = getnavl(fid);
+        vals = sscanf(line,'%f');
+        % toe                cic         om0          cis
+        toe = vals(1); cic = vals(2); om0 = vals(3); cis = vals(4);
+        line = getnavl(fid);
+        vals = sscanf(line,'%f');
+        % i0                 crc         w            omd
+        i0 = vals(1); crc = vals(2); w = vals(3); omd = vals(4);
+        line = getnavl(fid);
+        vals = sscanf(line,'%f');
+        % idt                cflg12      weekno       pflg12
+        idt = vals(1); cflg12 = vals(2); weekno = vals(3); pflg12 = vals(4);
+
+        line = getnavl(fid);
+        vals = sscanf(line,'%f');
+        % svaccuracy         svhealth    tgd          aodc
+        svacc = vals(1); svhealth = vals(2); tgd = vals(3); aodc = vals(4);
+        line = getnavl(fid);
+        vals = sscanf(line,'%f');
+        % transmit           spare       spare        spare
+        transmit = vals(1);
+        % Now construct the structure
+        str = struct('prn',prn,'date',date,'afc',afc, ...
+            'aode',aode,'crs',crs,'dn',dn,'M0',M0, ...
+            'cuc',cuc,'ecc',ecc,'cus',cus,'art',art, ...
+            'toe',toe,'cic',cic','om0',om0,'cis',cis, ...
+            'i0',i0,'crc',crc,'w',w,'omd',omd, ...
+            'idt',idt,'cflg12',cflg12,'weekno',weekno,'pflg12',pflg12, ...
+            'svacc',svacc,'svhealth',svhealth,'tgd',tgd,'aodc',aodc, ...
+            'transmit',transmit);
+        % Now add to nav array
+        cnt = cnt + 1; nav = [nav str];
+    end
+end
+        
+
+function line = getnavl(fid)
+% line = getnavl(fid) function to read nav file line and fix it up so that
+% it can be read in Matlab (replace D with E and slit fields)
+line = fgetl(fid);
+if ischar(line)
+    line = strrep(line,'D','E');
+    if length(line) >= 79
+        line = [line(1:22) ' ' line(23:41) ' ' line(42:60) ' ' line(61:79)]; 
+    elseif length(line) >= 60
+        line = [line(1:22) ' ' line(23:41) ' ' line(42:60) ' ' line(42:60)];
+    elseif length(line) >= 41
+        line = [line(1:22) ' ' line(23:41)];
+    end
+end
