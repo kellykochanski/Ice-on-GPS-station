@@ -72,7 +72,7 @@ azzd(2,ind) = NaN;
 
 %% PLOTTING 
 if plots_on
-    plot_satellite_tracks(prns, IXYZ, EXYZ, azzd)
+    plot_satellite_tracks(prns, nr, its, tdata, num_ts, IXYZ, EXYZ, azzd)
 end % end of plotting for GPS_tracks()
 
 function [geod, niter]  = xyz_to_geod(xyz)
@@ -504,7 +504,21 @@ if ischar(line)
     end
 end
 
-function [] = plot_satellite_tracks(prns, IXYZ, EXYZ, azzd)
+function [] = plot_satellite_tracks(prns, nr, its, tdata, num_ts, ...
+    IXYZ, EXYZ, azzd)
+% Plotting function to display output from GPS_tracks.
+
+% Takes in and plots the following arrays from GPS_tracks:
+% EXYZ  : satellite ground tracks
+% IXYZ  : satellite tracks in inertial coordinates
+% azzd  : azimuth/zenith angles as seen from lat/long/ht in GPS_tracks
+
+% Other variables are taken from GPS_tracks and specify:
+% prns  : satellite PRNs
+% nr    : number of satellites
+% its   : indices in arrays at which we will plot
+% tdata : array of times after the start of the nav file
+% num_ts: number of time-points to plot tracks
 
 % % Color for plots (need to extend if more then 10)
 dispn = [04 05 07 08 10 15 21 26 29];
@@ -616,7 +630,6 @@ for k = 1:nr
     end
 end
 axis tight;
-title(fprintf('Azimuth/zenith polar plot at lat %d lon %d ht %d', ...
-    lat, long, ht));
+title(fprintf('Azimuth/zenith polar plot at specified lat/long/ht'));
 view(+90,-90)
 hold off;
