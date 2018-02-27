@@ -1,191 +1,79 @@
-function [azzd] = HW01_2014(navfile, lat, long, ht)
-% HW01_2014: Solution to 12.540 HW01 2014.  Arguments are quextion number
-% (1,2,3 or 0 to solve all questions) and ppr set to non-zero value to save
-% the figures are postsript files.
-% Optionally a third argument can be given with navfile name (defaults
-% brdc0760.12n
-% e.g.
-% HW01_2014(0, 1, 'brdc0760.12n')
-% would run all questions, print the plots to ps files and use broadcast
+function [azzd] = GPS_tracks(plots_on, lat, long, ht, navfile)
+% Solution to 12.540 HW01 2014. - Thomas Herring, 2015
+% Returns a vector containing the azimuth and zenith angles of 
+% GPS satellite tracks found in navfile.
+
+% --ARGUMENTS--
+% plots_on  :   True/False (0 or 1).
+% Plot Earth-fixed, ground-track, and azimuth-zenith plots
+% for the satellites. 
+% (defaults to 1, or plots ON)
+
+% lat       :   longitude, radians
+% long      :   latitude, radians
+% ht        :   elevation, metres
+% Azimuth-zenith coordinates calculated as if seen from this location.
+% (defaults to Anchorage airport, Alaska, US)
+
+% navfile   :   broadcast ephemersis file, path/filename string
+%(defaults to brdc0760.12n)
+
+% --EXAMPLE--
+% HW01_2014(1, 1.1, 1.2, 300, 'brdc0760.12n')
+% would use broadcast
 % ephemeris file brdc0760.12n.
+% And find the azimuth and zenith angles of the satellites as seen from
+% 1.1 radians latitude, 1.2 radians longitude, and an elevation of 300m.
 
-% Latitude and Longitude for AZZD are set in Q3
-% Lat and long are in radians
-% Ht (elevation) in metres
-
-% 12.540 Homework #1
-% Use close all to clear all exisitng figures
-%
-if nargin < 1
+%% DEFAULT ARGUMENTS
+if nargin < 5
     navfile = 'brdc0760.12n';
 end
+
 if nargin < 4
-    %% Set Position of site
-    %lat = 42.358*pi/180; long=288.902*pi/180; ht=0.0;
-    lat = 62.92931*pi/180;	long = -156.02339*pi/180; ht = 961; % anchorage airport
+    % Default test location: Anchorage airport, Alaska.
+    lat = 62.92931*pi/180;	long = -156.02339*pi/180; ht = 961;
 end
-	
 
-% if nargin < 1 
-    % ppr = 0; % By default, don't print figure
-% end
-% if nargin == 0
-    % numques = 0 ; % By default, anwer all questions
-% end
-
-ppr = 0;
-numques = 0;
-
-%% Start Question 3: Satellite trajectories.
-
-if numques == 0 || numques == 3
-   
-
-    %% Read in the MIT broadcast emphersis file.
-    % nav is the broadcast ephemeris structure, lp is difference between
-    % GPSTime and UTC, nr is number of records
-    fprintf('++++++++++++++++++++++++++++++++++\n')
-    navfile = 'brdc0760.12n';
-    [nav lp nr] = ReadNav(navfile);
-    fprintf('12.540 HW 01\nFound %d records in %s, GPST-UTC %d s\n', ...
-        nr, navfile, lp);
-
-    % Set up times for calculations: Run 24-hours at 1 minute intervals. 
-    ts = (0:60:86400); num_ts = length(ts);
-    tdata = 14*3600; % Time after start of nav file our time is (14:00 GPST).  
-    % We will mark the satellite positions at this time.
-    its = find( ts == tdata ); 
-
-    % % Color for plots (need to extend if more then 10)
-     dispn = [04 05 07 08 10 15 21 26 29];
-     c = ['k:'; 'g '; 'b '; 'm '; 'r '; 'r:'; 'g:'; 'b:'; 'm:'; 'k '];
-
-    % %% Generate a sphere the size of the Earth
-    % [Xeu, Yeu, Zeu] = sphere(20);
-    % Xe = Xeu*6371.0; Ye = Yeu*6371.0; Ze = Zeu*6371; % Mean radius (2*a+b)/3
-
-    %% Q3.1(a): Generate Inertial coordinates
-    [prns IXYZ] = eph_to_xyz(nav,ts,'I');
-    % Now plot
-    % h2 = figure; set(h2,'Name','Inertial coordinates'); clf; 
-    % surface(Xe,Ye,Ze,abs(Ze)); shading interp;
-    % hold on; 
-    % for k = 1:nr;
-        % ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
-        % plot3(IXYZ(1,:,k)/1000,IXYZ(2,:,k)/1000,IXYZ(3,:,k)/1000,c(ind,:)); 
-    % end
-    % xlabel('X inertial (km)'); ylabel('Y inertial (km)'); zlabel('Z inertial (km)'); 
-    % title('Skyplot for site AB11')
-    % % Plot postions at tdata
-    % for k = 1:nr
-        % ind = find(prns(k) == dispn ); 
-        % if ~isempty(ind) 
-            % plot3(IXYZ(1,its,k)/1000,IXYZ(2,its,k)/1000,IXYZ(3,its,k)/1000,'k*')
-            % lab = sprintf('PRN%2.2d',prns(k));
-            % text(IXYZ(1,its,k)/1000,IXYZ(2,its,k)/1000,IXYZ(3,its,k)/1000,lab);
-            % fprintf('InertXYZ PRN %2.2d T %10.1f sec, XYZ %15.3f %15.3f %15.3f m\n', ...
-                % prns(k),tdata, IXYZ(1,its,k),IXYZ(2,its,k),IXYZ(3,its,k));
-        % end
-    % end
-    % daspect([1 1 1]); axis tight; grid on;
-    % view(-115,20);
-    % if ppr , print -dpsc2 HW01_Q31a.ps; end
-    % hold off;
-
-    %% Q3.1(b): Generate Earth fixed coordinates
-    [prns EXYZ] = eph_to_xyz(nav,ts,'E');
-    % % Now plot
-    % h3 = figure; set(h3,'Name','Earth Fixed coordinates'); clf; 
-    % surface(Xe,Ye,Ze,abs(Ze)); shading interp;
-    % hold on; 
-    % for k = 1:nr; 
-        % ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
-        % plot3(EXYZ(1,:,k)/1000,EXYZ(2,:,k)/1000,EXYZ(3,:,k)/1000,c(ind,:)); 
-    % end
-    % xlabel('X Efixed (km)'); ylabel('Y Efixed (km)'); zlabel('Z Efixed (km)'); 
-    % title('12.540 HW01: Q3.1(b)')
-    % pause()
-    % % Plot postions at tdata
-    % for k = 1:nr
-        % ind = find(prns(k) == dispn ); 
-        % if ~isempty(ind) 
-            % plot3(EXYZ(1,its,k)/1000,EXYZ(2,its,k)/1000,EXYZ(3,its,k)/1000,'k*')
-            % lab = sprintf('PRN%2.2d',prns(k));
-            % text(EXYZ(1,its,k)/1000,EXYZ(2,its,k)/1000,EXYZ(3,its,k)/1000,lab);
-            % fprintf('EFixsXYZ PRN %2.2d T %10.1f sec, XYZ %15.3f %15.3f %15.3f m\n', ...
-                % prns(k),tdata, EXYZ(1,its,k),EXYZ(2,its,k),EXYZ(3,its,k));
-
-        % end
-    % end
-    % daspect([1 1 1]); axis tight; grid on;
-    % view(16,30);
-    % if ppr , print -dpsc2 HW01_Q31b.ps; end
-    % hold off;
-
-    %% Q3.2 Ground track
-    % gtrk = xyz_to_llr(EXYZ); % Lat, Long (rads), dist
-    % coasts = load('WorldVelV.xy');
-    % h4 = figure; set(h4,'Name','Ground Track');
-    % plot(coasts(:,1),coasts(:,2),'k'); 
-    % hold on
-    % xlim([0 360]); ylim([-90 90]); daspect([1 1 1]);
-    % % For plotting with a line, put an NaN when the longitude wraps through
-    % % 360
-    % for k = 1:nr
-        % ind = find(gtrk(2,2:num_ts,k)-gtrk(2,1:num_ts-1,k) < 0);
-        % gtrk(2,ind+1,k) = NaN;
-    % end
-    % % Plot ground track
-
-%     for k = 1:nr
-%         ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end    
-%         plot(gtrk(2,:,k)*180/pi,gtrk(1,:,k)*180/pi,c(ind,:));
-%     end
-%     % Plot positions during data acquition
-%     for k = 1:nr
-%         ind = find(prns(k) == dispn ); 
-%         if ~isempty(ind) 
-%             plot(gtrk(2,its,k)*180/pi,gtrk(1,its,k)*180/pi,'r*');
-%             lab = sprintf('PRN%2.2d',prns(k));
-%             text(gtrk(2,its,k)*180/pi,gtrk(1,its,k)*180/pi,lab);
-%         end
-%     end
-%     xlabel('Longitude (deg)'); ylabel('Latitude (deg)');
-%     title('12.540 HW01: Q3.2')
-%     if ppr , print -dpsc2 HW01_Q32.ps; end
-%     hold off;
-
-    %% Q3.3 Azimuth/Zenith Distance plot
-    azzd = xyz_to_azzd(EXYZ,lat,long,ht);
-    % Now set all zenith distances greater than pi/2 to NaN so they will not
-    % plot
-    ind = find(azzd(2,:,:)>pi/2);
-    azzd(2,ind) = NaN;
-    % Now generate the polar plot
-    h5 = figure; set(h5,'Name','Azimuth/Zenith Distance');clf; 
-    for k = 1:nr
-        ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
-        polar(azzd(1,:,k),azzd(2,:,k)*180/pi,c(ind,:));
-        if k == 1 , hold on; end
-    end
-    % Now plot our data locations
-    for k = 1:nr
-        ind = find(prns(k) == dispn ); 
-        if ~isempty(ind) 
-            polar(azzd(1,its,k),azzd(2,its,k)*180/pi,'r*')
-            lab = sprintf('PRN%2.2d',prns(k));
-            % Compute coordinates where label needs to go
-            xl = azzd(2,its,k)*180/pi*cos(azzd(1,its,k))+5;
-            yl = azzd(2,its,k)*180/pi*sin(azzd(1,its,k));
-            text(xl,yl,lab);
-        end
-    end
-    axis tight;
-    title('12.540 HW01: Q3.3');
-    view(+90,-90)
-    if ppr , print -dpsc2 HW01_Q33.ps; end
-    hold off;
+if nargin < 1
+    plots_on = 1;
 end
+
+%% READ THE MIT BROADCAST EMPHERSIS FILE
+% nav is the broadcast ephemeris structure, lp is difference between
+% GPSTime and UTC, nr is number of records
+fprintf('++++++++++++++++++++++++++++++++++\n')
+% Default value: navfile = 'brdc0760.12n';
+[nav lp nr] = ReadNav(navfile);
+fprintf('12.540 HW 01\nFound %d records in %s, GPST-UTC %d s\n', ...
+    nr, navfile, lp);
+
+% Set up times for calculations: Run 24-hours at 1 minute intervals. 
+ts = (0:60:86400); num_ts = length(ts);
+tdata = 14*3600; % Time after start of nav file our time is (14:00 GPST).  
+% We will mark the satellite positions at this time.
+its = find( ts == tdata ); 
+
+%% MANIPULATE COORDINATES
+
+% Generate inertial coordinates (optional, for plotting)
+[prns IXYZ] = eph_to_xyz(nav,ts,'I');
+
+% Generate Earth-fixed coordinates
+[prns EXYZ] = eph_to_xyz(nav,ts,'E');
+
+% Generate azimuth/Zenith Distance coordinates
+azzd        = xyz_to_azzd(EXYZ,lat,long,ht);
+
+% If Earth is between the satellite and the station, set distance to NaN
+% (approximated by zentih > pi/2, does not account for topography etc)
+ind = find(azzd(2,:,:)>pi/2);
+azzd(2,ind) = NaN;
+
+%% PLOTTING 
+if plots_on
+    plot_satellite_tracks(prns, IXYZ, EXYZ, azzd)
+end % end of plotting for GPS_tracks()
 
 function [geod, niter]  = xyz_to_geod(xyz)
 % XYZ_to_GEOD: Converts XYZ to GEOD coordinates for WGS84 ellipsoid
@@ -229,56 +117,6 @@ while converged == 0
 end
 % Save the results
 geod = [lat_i ; long ; h_i ];
-
-
-%{ 
-Original Fotran code
-     .    tolerance  / 0.0001d0 /
-***** Start, get the latitudes and height by iteration.
-      equ_rad = sqrt( site_pos(1)**2 + site_pos(2)**2 )
-      eccsq   = 2.d0*earth_flat - earth_flat**2
-*                                            ! Set previous iteration values
-      lat_p = atan2( site_pos(3), equ_rad)
-      h_p   = 0.d0
-      converged = .false.
-      niter = 0
-      do while ( .not. converged )
-*         Get radius of curvature using previous latitudes estimate
-          rad_curve = earth_rad /
-     .               sqrt(1.d0 - eccsq*sin(lat_p)**2 )
-          rad_lat  = equ_rad *
-     .               ( 1.d0 - eccsq*rad_curve/(rad_curve+h_p) )
-
-          lat_i = atan2( site_pos(3), rad_lat)
-*                                          ! Use cos lat formula
-          if( abs(lat_i).lt. pi/4 ) then
-               h_i   = equ_rad/cos(lat_i) - rad_curve
-*                                           ! Use sin lat formula
-           else
-               h_i   = site_pos(3)/sin(lat_i) - (1.d0-eccsq)*rad_curve
-           end if
-*         Check for convergence
-          if( abs(h_i-h_p)              .lt. tolerance .and.
-*                                                             ! Converged
-     .        abs(lat_i-lat_p)*rad_curve.lt. tolerance ) then
-
-              converged = .true.
-          end if
-*         Check for two many iterations
-          niter = niter + 1
-          if( niter.gt.50 ) then
-c           get calling program name and m-file name for report_stat
-            len = rcpar(0,prog_name)
-            call report_stat('FATAL',prog_name,'lib/xyz_to_geod',' '
-     .       ,'Convergence failure in computing geodetic coordinates',0)
-          end if
-
-*         Save the latest values
-          h_p   = h_i
-          lat_p = lat_i
-*                     ! iterating for latitudes and height
-      end do
-%}
 
 function gtrk = xyz_to_llr(xyz)
 % gtrck = eph_to_llr(nav)
@@ -665,3 +503,120 @@ if ischar(line)
         line = [line(1:22) ' ' line(23:41)];
     end
 end
+
+function [] = plot_satellite_tracks(prns, IXYZ, EXYZ, azzd)
+
+% % Color for plots (need to extend if more then 10)
+dispn = [04 05 07 08 10 15 21 26 29];
+c = ['k:'; 'g '; 'b '; 'm '; 'r '; 'r:'; 'g:'; 'b:'; 'm:'; 'k '];
+
+%% Generate a sphere the size of the Earth
+[Xeu, Yeu, Zeu] = sphere(20);
+Xe = Xeu*6371.0; Ye = Yeu*6371.0; Ze = Zeu*6371; % Mean radius (2*a+b)/3
+
+% Plot Inertial coordinates
+h2 = figure; set(h2,'Name','Inertial coordinates'); clf; 
+surface(Xe,Ye,Ze,abs(Ze)); shading interp;
+hold on; 
+for k = 1:nr;
+    ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
+    plot3(IXYZ(1,:,k)/1000,IXYZ(2,:,k)/1000,IXYZ(3,:,k)/1000,c(ind,:)); 
+end
+xlabel('X inertial (km)'); ylabel('Y inertial (km)'); zlabel('Z inertial (km)'); 
+title('Skyplot for site AB11')
+% Plot postions at tdata
+for k = 1:nr
+    ind = find(prns(k) == dispn ); 
+    if ~isempty(ind) 
+        plot3(IXYZ(1,its,k)/1000,IXYZ(2,its,k)/1000,IXYZ(3,its,k)/1000,'k*')
+        lab = sprintf('PRN%2.2d',prns(k));
+        text(IXYZ(1,its,k)/1000,IXYZ(2,its,k)/1000,IXYZ(3,its,k)/1000,lab);
+        fprintf('InertXYZ PRN %2.2d T %10.1f sec, XYZ %15.3f %15.3f %15.3f m\n', ...
+            prns(k),tdata, IXYZ(1,its,k),IXYZ(2,its,k),IXYZ(3,its,k));
+    end
+end
+daspect([1 1 1]); axis tight; grid on;
+view(-115,20);
+hold off;
+
+% Plot Earth-fixed coordinates
+h3 = figure; set(h3,'Name','Earth Fixed coordinates'); clf; 
+surface(Xe,Ye,Ze,abs(Ze)); shading interp;
+hold on; 
+for k = 1:nr; 
+    ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
+    plot3(EXYZ(1,:,k)/1000,EXYZ(2,:,k)/1000,EXYZ(3,:,k)/1000,c(ind,:)); 
+end
+xlabel('X Efixed (km)'); ylabel('Y Efixed (km)'); zlabel('Z Efixed (km)'); 
+title('Earth-fixed coordinates')
+pause()
+% Plot postions at tdata
+for k = 1:nr
+    ind = find(prns(k) == dispn ); 
+    if ~isempty(ind) 
+        plot3(EXYZ(1,its,k)/1000,EXYZ(2,its,k)/1000,EXYZ(3,its,k)/1000,'k*')
+        lab = sprintf('PRN%2.2d',prns(k));
+        text(EXYZ(1,its,k)/1000,EXYZ(2,its,k)/1000,EXYZ(3,its,k)/1000,lab);
+        fprintf('EFixsXYZ PRN %2.2d T %10.1f sec, XYZ %15.3f %15.3f %15.3f m\n', ...
+            prns(k),tdata, EXYZ(1,its,k),EXYZ(2,its,k),EXYZ(3,its,k));
+
+    end
+end
+daspect([1 1 1]); axis tight; grid on;
+view(16,30);
+hold off;
+
+% Plot Ground Track
+gtrk = xyz_to_llr(EXYZ); % Lat, Long (rads), dist
+coasts = load('WorldVelV.xy');
+h4 = figure; set(h4,'Name','Ground Track');
+plot(coasts(:,1),coasts(:,2),'k'); 
+hold on
+xlim([0 360]); ylim([-90 90]); daspect([1 1 1]);
+% For plotting with a line, put an NaN when the longitude wraps through
+% 360
+for k = 1:nr
+    ind = find(gtrk(2,2:num_ts,k)-gtrk(2,1:num_ts-1,k) < 0);
+    gtrk(2,ind+1,k) = NaN;
+end
+    for k = 1:nr
+        ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end    
+        plot(gtrk(2,:,k)*180/pi,gtrk(1,:,k)*180/pi,c(ind,:));
+    end
+    % Plot positions during data acquition
+    for k = 1:nr
+        ind = find(prns(k) == dispn ); 
+        if ~isempty(ind) 
+            plot(gtrk(2,its,k)*180/pi,gtrk(1,its,k)*180/pi,'r*');
+            lab = sprintf('PRN%2.2d',prns(k));
+            text(gtrk(2,its,k)*180/pi,gtrk(1,its,k)*180/pi,lab);
+        end
+    end
+    xlabel('Longitude (deg)'); ylabel('Latitude (deg)');
+    title('Ground Track')
+    hold off;
+
+% Azimuth/Zenith Distance polar plot
+h5 = figure; set(h5,'Name','Azimuth/Zenith Distance');clf; 
+for k = 1:nr
+    ind = find(prns(k) == dispn ) + 1; if isempty(ind) , ind = 1; end
+    polar(azzd(1,:,k),azzd(2,:,k)*180/pi,c(ind,:));
+    if k == 1 , hold on; end
+end
+% Now plot our data locations
+for k = 1:nr
+    ind = find(prns(k) == dispn ); 
+    if ~isempty(ind) 
+        polar(azzd(1,its,k),azzd(2,its,k)*180/pi,'r*')
+        lab = sprintf('PRN%2.2d',prns(k));
+        % Compute coordinates where label needs to go
+        xl = azzd(2,its,k)*180/pi*cos(azzd(1,its,k))+5;
+        yl = azzd(2,its,k)*180/pi*sin(azzd(1,its,k));
+        text(xl,yl,lab);
+    end
+end
+axis tight;
+title(fprintf('Azimuth/zenith polar plot at lat %d lon %d ht %d', ...
+    lat, long, ht));
+view(+90,-90)
+hold off;
