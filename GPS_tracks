@@ -9,8 +9,8 @@ function [azzd] = GPS_tracks(plots_on, lat, long, ht, navfile)
 % for the satellites. 
 % (defaults to 1, or plots ON)
 
-% lat       :   longitude, radians
-% long      :   latitude, radians
+% lat       :   longitude, degrees
+% long      :   latitude, degrees
 % ht        :   elevation, metres
 % Azimuth-zenith coordinates calculated as if seen from this location.
 % (defaults to Anchorage airport, Alaska, US)
@@ -53,6 +53,9 @@ ts = (0:60:86400); num_ts = length(ts);
 tdata = 14*3600; % Time after start of nav file our time is (14:00 GPST).  
 % We will mark the satellite positions at this time.
 its = find( ts == tdata ); 
+
+% Convert position from degrees to radians:
+lat = lat*pi/180; long = long*pi/180;
 
 %% MANIPULATE COORDINATES
 
