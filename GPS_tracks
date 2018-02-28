@@ -45,7 +45,7 @@ end
 fprintf('++++++++++++++++++++++++++++++++++\n')
 % Default value: navfile = 'brdc0760.12n';
 [nav lp nr] = ReadNav(navfile);
-fprintf('12.540 HW 01\nFound %d records in %s, GPST-UTC %d s\n', ...
+fprintf('Found %d records in %s, GPST-UTC %d s\n', ...
     nr, navfile, lp);
 
 % Set up times for calculations: Run 24-hours at 1 minute intervals. 
