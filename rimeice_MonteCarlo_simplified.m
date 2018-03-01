@@ -11,6 +11,7 @@ function[ ] = rimeice_MonteCarlo(lat, long, ht, name, plot_on, path_out, navfile
 % Parameters controlling input and output:
 %  plot_on  : binary. if True (1), plot delay in signal due to rime plume.
 %  path_out : path for saving output data, string (set to 0 if not saving)
+%              matlab must have write privilges in this folder.
 %  navfile  : broadcast ephemeris file with GPS satellite tracks
 %           : (defaults to 'brdc0760.12n')
 
@@ -29,7 +30,7 @@ if path_out == 0;   saving_on = 0;
 %  azimuthal angle   : a
 %  elevation angle   : e
 % This shape will be randomly perturbed in N monte carlo trials: 
-N = 1;
+N = 100;
 % by spherical harmonics with size:
 noiselevel = 0.2;
 
@@ -53,8 +54,8 @@ tic;
 column_titles = 'lat, long, ht, r_r, rimedir, phi, dx, dy, dz, dclock, datm';
 if saving_on;
     % If saving, write line-by-line to a csv file
-    output_filename = strcat( path_out, ...
-                              fprintf('rimeice-mc-output-%d', name));
+    output_filename = strcat( path_out, 'rimeice-mc-output-', name);
+    file = fopen(output_filename, 'w');
     strcat('Saving to : ', output_filename)
     dlmwrite(output_filename, column_titles, ...
         'delimiter', ',');
@@ -62,30 +63,27 @@ else
     % Else print output to display
     disp(column_titles)
 end
-
-r_r = r_s;
-run_one_trial(r_r, r_s, pi/4, 0, noiselevel, plumeboundaries, azzd, 0);
     
-% % For a bunch of possible sizes (r_r), directions (rimedir) and widths
-% % (phi) of rime plumes, do N trials for each:
-% for r_r     = r_s % r_s + exp(-4:0.5:5);
-% for rimedir = 0 %-pi + pi/50:pi/50:pi;
-% for phi     = 0 %-pi/4:pi/4:pi/4;
-% tmp_output = zeros(11, N);
-% for i    = 1:N; % parallizable with parfor
-%     output_vec      = run_one_trial(r_r, rimedir, phi, ...
-%         noiselevel, delayfunction, plot_on);
-%     tmp_output(:,i) = [lat, long, ht, output_vec];
-% end % done with N trials (done with parallelized section)
-% for i = 1:N
-%     line = tmp_output(:,i);
-%     if saving_on; write_line_of_csv(output_filename, line);
-%     else          write_line_output(line); end
-% end
-% fprintf('Finished another %d trials', N)
-% end % done with plume width phi
-% end % done with plume bearing rimedir
-% end % done with plume size r_r
+% For a bunch of possible sizes (r_r), directions (rimedir) and widths
+% (phi) of rime plumes, do N trials for each:
+
+for r_r     =  r_s + exp(-4:0.5:5);
+for rimedir = -pi + pi/50:pi/5:pi;
+for phi     = -pi/4:pi/4:pi/4;
+tmp_output = zeros(11, N);
+parfor i    = 1:N; % parallizable with parfor
+    output_vec      = run_one_trial(r_r, r_s, rimedir, phi,...
+    noiselevel, plumeboundaries, azzd, plot_on);
+    tmp_output(:,i) = [lat, long, ht, output_vec];
+end % done with N trials (done with parallelized section)
+for i = 1:N
+    line = tmp_output(:,i);
+    if saving_on; write_line_of_csv(output_filename, line);
+    else          write_line_output(line); end
+end
+end % done with plume width phi
+end % done with plume bearing rimedir
+end % done with plume size r_r
 
 toc;
 end % end function rimeice_MonteCarlo
@@ -126,6 +124,9 @@ function [output_vector] = run_one_trial(r_r, r_s, rimedir, phi,...
     output_vector = [
         r_r, rimedir, phi, ...
         Dx, Dy, Dz, Dclock, Datm];
+    
+    fprintf('Finished trial: rimedir=%d r_r=%d phi=%d \n', ...
+        rimedir, r_r, phi)
 end
 
 function [ dx, dy, dz, dclock, datm ] = ...
@@ -173,11 +174,6 @@ for sat = 1:n_sat % For each satellite track
     
     % Ice delay at each satellite position
     delays  = delayfunction(azimuths_n, zeniths);
-    hold on
-    %plot(azimuths_n, zeniths)
-    %plot(cos(zeniths).*sin(azimuths_n), cos(zeniths).*cos(azimuths_n))
-    [xvec, yvec] = azimuth_zenith_2_x_y(azimuths_n, zeniths, 1);
-    plot(xvec, yvec, '.')
     
     % Least-squares estimate of position (dx, dy, dz), clock error (dclock)
     % and atmospheric delay parameter (datm) due to ice
@@ -229,7 +225,7 @@ for k = 1:length(avec);
 end;
 
 [A, E]      = meshgrid(avec, evec);
-[X, Y]      = azimuth_zenith_2_x_y(A, E, r_s)
+[X, Y]      = azimuth_zenith_2_x_y(A, E, r_s);
  contourf(X, Y, delayed', 300, 'edgecolor', 'none')
  axis('square')
  title(fprintf('delay in picoseconds'));
