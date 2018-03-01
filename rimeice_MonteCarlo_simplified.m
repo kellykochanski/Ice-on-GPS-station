@@ -1,124 +1,247 @@
+function[ ] = rimeice_MonteCarlo(lat, long, ht, name, plot_on, path_out, navfile)
 %% Rime plume monte-carlo
-
-% Kelly Kochanski
+% Kelly Kochanski 2015, cleaned up 2018
 
 % Simulates a variety of ice plumes on a hemispherical GPS station
 % located at a position defined by:
-%  lat:  latitude  (degrees)
-%  long: longitude (degrees)
-%  elev: elevation above sea level (m)
+%  lat      : latitude  (degrees)
+%  long     : longitude (degrees)
+%  ht       : elevation above sea level (m)
+%  name     : name of site, string (used in filenames, keep short)
+% Parameters controlling input and output:
+%  plot_on  : binary. if True (1), plot delay in signal due to rime plume.
+%  path_out : path for saving output data, string (set to 0 if not saving)
+%  navfile  : broadcast ephemeris file with GPS satellite tracks
+%           : (defaults to 'brdc0760.12n')
 
-function[ ] = rimeice_MonteCarlo(lat, long, ht, name)
+%% DEFAULT ARGUMENTS
+if nargin < 6;      navfile  = 'brdc0760.12n';  end
+if nargin < 5;      disp('defaults'); plot_on  = 1;               end
+if nargin < 4;      path_out = '';              end
+if path_out == 0;   saving_on = 0;              
+                    else saving_on = 1;         end
 
-%% PARAMETERS FOR THIS RUN
-% Does this latitude/longitude/elev belong to a named location?
-if nargin < 4
-    navfile = 'brdc0760.12n';
-end
+%% PARAMETERS FOR MONTE-CARLO
 
-output_filename = 'C:/Users/Kelly/Documents/Documents/GPS_project/monte-carlo-output-20170206-AB25.csv'
+%% THE SHAPE OF AN ICE PLUME
+% Function defining the average shape, or boundaries, of an ice plume,
+% where the boundary is a distance from the center of the sphere at each
+%  azimuthal angle   : a
+%  elevation angle   : e
+% This shape will be randomly perturbed in N monte carlo trials: 
+N = 1;
+% by spherical harmonics with size:
+noiselevel = 0.2;
 
-% Returns a vector of satellite azimuths and elevations, 
-%  as seen from this site. Takes in lat and long in radians.
-azzd = HW01_2014_simplified(lat./180.*pi, long./180.*pi, ht)
-
-%% Input parameters
-etaStd = 1/3; %standard deviation of distribution of feathering length eta
-r_s = 0.2;
-
-%% Parameters for this test - varied independently
-gamma = 3/2;
-r_r   = r_s + 0.1;
-lat = 62.92931;	long = -156.02339; ht = 961; % DO NOT SET HERE.
-                                            % Set in HW01_2014.m
-%% The shape of this ice plume
-% Defaults so it'll compile
-rimedir = 0; phi = 0;
-% Function
+r_s     = 1; % radius of station, m
+r_r     = 0; % initialize float
 plumeboundaries = @(a, e)...
     ( ( - pi/2 <= a).*(pi/2 >= a) ).*...
     ( min([r_r, ...
            r_s./sin(e), ...
            r_s./cos(e)./abs(sin(a))])...
       - r_s );
+  
+%% Get satellite tracks
+% Vector of satellite azimuths and elevations as seen from this site.
+azzd = GPS_tracks(0, lat, long, ht, navfile);
 
-%% Run a whole bunch of monte-carlo simulations :)
-N = 50;
-rimesizes = r_s + exp(-4:0.5:5);
-rimedirstep = pi/50; %radians
-%phisteps = -pi/4:pi/4:pi/4;
-
+%% Run a whole bunch of monte-carlo simulations
 tic;
-dlmwrite(output_filename, zeros(1,12), 'delimiter', ','); 
-% For a bunch of plausible sizes of rime plume
-for r_r = rimesizes;
-    % For each possible direction of ice plume
-    for rimedir = -pi + rimedirstep :rimedirstep:pi;
-        % For each reasonable direction of phi
-    %    for phi = phisteps;
-            % Do a bunch of trials
-            output = zeros(0, 12);
-            parfor i = 1:N;
-                noiselevel = 0.2;
-                xi = r_r*2*sqrt(pi).*[1, noiselevel*rand(1,15)-0.5*noiselevel];
-                % cut out variations with wavelengths less than that of L1
-                if r_r <= 0.0605; xi = xi(1);
-                elseif r_r <= 0.121; xi = xi(1:4);
-                elseif r_r <= 0.242; xi = xi(1:9);
-                end
-                % we'll be missing some spherical harmonic terms if r_r >
-                % 36cm
-                
-                delayfunction = @(a, e) ...
-                    plumeboundaries(a, e).*1030.*sphericalHarmonic(a,e,xi);
-                
-                %% USE THIS BLOCK TO PLOT DELAYFUNCTION(a,e)
-%                 avec = -pi:pi/100:pi;
-%                 evec = 0:pi/100:pi/2;
-%                 hold all
-%                 cmap = colormap;
-%                 cmap(1, :) = [1 1 1];
-%                 for k = 1:length(avec); 
-%                     for j = 1:length(evec);
-%                         atmp = mod(avec(k) - rimedir + pi, 2*pi) - pi;
-%                         delayed(k,j) = delayfunction(atmp, evec(j));
-%                         %colornum = max(1, min(64, round(3200*num)));
-%                         %plot(avec(k)/pi, evec(j)/pi, '.', 'markeredgecolor', cmap(colornum, :))
-%                         %disp('one done')
-%                     end; 
-%                 end;
-%                 [A, E] = meshgrid(avec, evec);
-%                 X = r_s.*cos(E).*cos(A); Y = r_s.*cos(E).*sin(A);
-%                 Z = sqrt(max(0, r_s.^2-X.^2 - Y.^2));
-%                 colormap('hot')
-%                 caxis([0 15])
-%                 title('delay in picoseconds')
-%                 surf(X, Y, Z, delayed', ...
-%                     'edgecolor', 'none',...
-%                     'FaceColor','interp')
-%                 %camlight right
-%                 daspect([1 1 1]); axis off;
-%                 c = colorbar; c.Label.String = 'Delay (ns)';
-%                 pause();
-                %% End of plotting block
-                %% Solve for position
-                             
-                [ dx, dy, dz, dclock, datm ] = ...
-                    rime_effect_improved(rimedir, azzd, delayfunction );
 
-                % How do we average the observations from 30 satellites?
-                Dx = mean(dx); Dy = mean(dy); Dz = mean(dz); 
-                Dclock = mean(dclock); Datm = mean(datm);
-
-                % Put independent vars + results into an array...
-                outvec = [lat, long, ht, ...
-                    gamma, r_r, rimedir, phi, ...
-                    Dx, Dy, Dz, Dclock, Datm];
-                output = [output; outvec];
-            end
-            dlmwrite(output_filename, output, 'delimiter', ',', '-append');
-      %  end
-    end
+% SET UP OUTPUT
+column_titles = 'lat, long, ht, r_r, rimedir, phi, dx, dy, dz, dclock, datm';
+if saving_on;
+    % If saving, write line-by-line to a csv file
+    output_filename = strcat( path_out, ...
+                              fprintf('rimeice-mc-output-%d', name));
+    strcat('Saving to : ', output_filename)
+    dlmwrite(output_filename, column_titles, ...
+        'delimiter', ',');
+else
+    % Else print output to display
+    disp(column_titles)
 end
 
+r_r = r_s;
+run_one_trial(r_r, r_s, pi/4, 0, noiselevel, plumeboundaries, azzd, 0);
+    
+% % For a bunch of possible sizes (r_r), directions (rimedir) and widths
+% % (phi) of rime plumes, do N trials for each:
+% for r_r     = r_s % r_s + exp(-4:0.5:5);
+% for rimedir = 0 %-pi + pi/50:pi/50:pi;
+% for phi     = 0 %-pi/4:pi/4:pi/4;
+% tmp_output = zeros(11, N);
+% for i    = 1:N; % parallizable with parfor
+%     output_vec      = run_one_trial(r_r, rimedir, phi, ...
+%         noiselevel, delayfunction, plot_on);
+%     tmp_output(:,i) = [lat, long, ht, output_vec];
+% end % done with N trials (done with parallelized section)
+% for i = 1:N
+%     line = tmp_output(:,i);
+%     if saving_on; write_line_of_csv(output_filename, line);
+%     else          write_line_output(line); end
+% end
+% fprintf('Finished another %d trials', N)
+% end % done with plume width phi
+% end % done with plume bearing rimedir
+% end % done with plume size r_r
+
 toc;
+end % end function rimeice_MonteCarlo
+
+function [output_vector] = run_one_trial(r_r, r_s, rimedir, phi,...
+    noiselevel, plumeboundaries, azzd, plot_on)
+    % Create a bunch of random coefficients for spherical harmonics -
+    %  these define an irregular, random rime plume
+    coeffs = r_r*2*sqrt(pi).*[1, noiselevel*rand(1,15)-0.5*noiselevel];
+
+    % Cut out variations with wavelengths less than that of L1        
+    % Note: we'll be missing some spherical harmonic terms if r_r>36cm
+    if      r_r <= 0.0605;  coeffs = coeffs(1);
+    elseif  r_r <= 0.121;   coeffs = coeffs(1:4);
+    elseif  r_r <= 0.242;   coeffs = coeffs(1:9);
+    end
+
+    % Determine the delay of a wave passing straight through the plume
+    %  as a function of azimuth/elevation angle (direction)
+    delayfunction = @(a, e) ...
+        plumeboundaries(a, e).*1030.*sphericalHarmonic(a,e,coeffs);
+
+    if plot_on;  
+        disp('Plotting ice-caused delay as a function of satellite angle relative to GPS station')
+        plot_delay_function(delayfunction, rimedir, r_s); 
+    end
+
+    %% Find shift in apparent position of station
+    [ dx, dy, dz, dclock, datm ] = ...
+        rime_effect(rimedir, azzd, delayfunction );
+
+    % How do we average the observations from 30 satellites?
+    % (Naive linear average here)
+    Dx = mean(dx); Dy = mean(dy); Dz = mean(dz); 
+    Dclock = mean(dclock); Datm = mean(datm);
+
+    % Put independent vars + results into an array...
+    output_vector = [
+        r_r, rimedir, phi, ...
+        Dx, Dy, Dz, Dclock, Datm];
+end
+
+function [ dx, dy, dz, dclock, datm ] = ...
+    rime_effect(rimedir, azzd, delayfunction )
+%rime_effect is the output of simulateRime.m at ONE point in time
+%  rimedir  : direction of rime plume, radians
+%  azzd     : produced by GPS_tracks.m - a set of satellite tracks.
+%       for satellite s at position j:
+%                 azzd(1,j,s) = azimuth angle,  radians, -pi < a < pi
+%                                               0 is south
+%                                               pi/2 is west
+%                 azzd(2,j,s) = zenith angle,   radians,   0 < e < pi/2
+%                                               0 is the apex (zenith)
+%                                               pi/2 is the horizon=
+%  delayfunction : a function handle returning ice delay as a function of 
+%                 azimuth and zenith angles.
+
+% Get number of satellites and number of time steps from azzd array
+azzdsize = size(azzd);
+n_sat    = azzdsize(3);
+nt       = azzdsize(2);
+
+% filter out any measurements which contain NaN values, or elevations
+% greater than pi/2.
+%azzd(isnan(azzd)) = pi/2;
+
+% Arrays to store apparent displacements for each satellite
+dx      = zeros(1,n_sat); 
+dy      = zeros(1,n_sat); 
+dz      = zeros(1,n_sat);
+dclock  = zeros(1,n_sat); 
+datm    = zeros(1,n_sat);
+
+for sat = 1:n_sat % For each satellite track
+    
+    %  Don't allow elevation angles within 10 degrees of horizon
+    %  (this operation also removes any NaN values)
+    
+    good_idx  = find(azzd(2,:,sat) < 1.396);
+    
+    zeniths    = azzd(2, good_idx, sat);
+    azimuths_s = azzd(1, good_idx, sat);     % bearings from south
+    azimuths_n = mod(azimuths_s + pi, 2*pi); %          from north
+    %disp([max(max(azimuths_s)), min(min(azimuths_s))]);
+    
+    % Ice delay at each satellite position
+    delays  = delayfunction(azimuths_n, zeniths);
+    hold on
+    %plot(azimuths_n, zeniths)
+    %plot(cos(zeniths).*sin(azimuths_n), cos(zeniths).*cos(azimuths_n))
+    [xvec, yvec] = azimuth_zenith_2_x_y(azimuths_n, zeniths, 1);
+    plot(xvec, yvec, '.')
+    
+    % Least-squares estimate of position (dx, dy, dz), clock error (dclock)
+    % and atmospheric delay parameter (datm) due to ice
+    A = [-sin(zeniths); ...
+        cos(zeniths).*cos(azimuths_s); ...
+        cos(zeniths).*sin(azimuths_s); ...
+        ones(1,length(good_idx)); ...
+        1./(sin(zeniths) + 10^-9)];
+    
+    % Least-squares solution to A*displacements = delays
+    [L,U]          = lu(A'); 
+    displacements  = U \ (L\delays');
+    
+    % Results of least squares solution
+    dz(sat)     = displacements(1); 
+    dy(sat)     = displacements(2); 
+    dx(sat)     = displacements(3); 
+    dclock(sat) = displacements(4); 
+    datm(sat)   = displacements(5);
+    
+end % end for
+end % end function
+
+function [] = write_line_of_csv(output_filename, output_array)
+% Function for saving output as one line in a csv file.
+% Defined separately so matlab can save within parfor loop.
+        dlmwrite(output_filename, output_array, 'delimiter', ',', '-append');
+end
+
+function [] = write_line_output(output_array)
+% Writes one line to display
+        disp(output_array);
+end
+
+function[ ] = plot_delay_function(delayfunction, rimedir, r_s)
+% Plot delay function in spherical coordinates (azimuth a, elevation e)
+
+avec = -pi:pi/100:pi;
+evec = 0:pi/100:pi/2;
+
+colormap('hot')
+% Get delay at all angles around the hemisphere
+delayed = zeros(length(avec), length(evec));
+for k = 1:length(avec); 
+    for j = 1:length(evec);
+        atmp = mod(avec(k) - rimedir + pi, 2*pi) - pi;
+        delayed(k,j) = delayfunction(atmp, evec(j));
+    end; 
+end;
+
+[A, E]      = meshgrid(avec, evec);
+[X, Y]      = azimuth_zenith_2_x_y(A, E, r_s)
+ contourf(X, Y, delayed', 300, 'edgecolor', 'none')
+ axis('square')
+ title(fprintf('delay in picoseconds'));
+ c = colorbar; 
+ c.Label.String = 'Delay (ns)';
+% pause();
+end % End plotting function
+
+function [X, Y] = azimuth_zenith_2_x_y(A, Z, r)
+% Convert arrays of azimuth and zenith coodinates to x-y coordinates
+%  within a circle of radius r. azimuth=0 on y axis and progresses cw
+ distance_from_center   = r.*(1 - cos(Z)); % = r*( 1 - sin(pi/2 - Z))
+ X          = distance_from_center.*sin(A);
+ Y          = distance_from_center.*cos(A);
+end
