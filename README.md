@@ -3,4 +3,4 @@ Model of rime ice plumes on a hemispherical GPS station and shifts in the statio
 
 Presented at AGU Fall Meeting 2015:
 
-<iframe src="https://widgets.figshare.com/articles/6367577/embed?show_title=1" width="568" height="351" frameborder="0"></iframe>
+[<img src="https://github.com/kellykochanski/Ice-on-GPS-station/blob/master/Poster-AGU-Fall-Meeting.png">](https://figshare.com/articles/Ice_accumulation_and_the_apparent_seasonal_movement_of_GPS_stations_in_Alaska/6367577)
