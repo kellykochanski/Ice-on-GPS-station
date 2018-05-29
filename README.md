@@ -3,4 +3,4 @@ Model of rime ice plumes on a hemispherical GPS station and shifts in the statio
 
 Presented at AGU Fall Meeting 2015:
 
-![alt text](https://widgets.figshare.com/articles/6367577/embed?show_title=1)
+<iframe src="https://widgets.figshare.com/articles/6367577/embed?show_title=1" width="568" height="351" frameborder="0"></iframe>
